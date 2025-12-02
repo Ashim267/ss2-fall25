@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #f5f7fa;
+            --primary-blue: #e3f2fd;
+            --primary-green: #e8f5e9;
+            --accent-blue: #0288d1;
+            --accent-green: #2e7d32;
+            --text-dark: #37474f;
+            --text-light: #546e7a;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .wrapper {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .search-container {
+            background: var(--white);
+            padding: 10px 20px;
+            border-radius: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 10px;
+        }
+
+        .search-container input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            color: var(--text-dark);
+        }
+
+        .search-container button {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .weather-card {
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-green));
+            border-radius: 24px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .temp-display {
+            font-size: 72px;
+            font-weight: 300;
+            margin: 10px 0;
+        }
+
+        .condition-text {
+            font-size: 20px;
+            text-transform: capitalize;
+            color: var(--text-light);
+            margin-bottom: 20px;
+        }
+
+        .quick-stats {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        .section-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            padding-left: 10px;
+            color: var(--text-light);
+        }
+
+        .scroll-container {
+            display: flex;
+            overflow-x: auto;
+            gap: 15px;
+            padding-bottom: 15px;
+            scrollbar-width: none;
+        }
+        
+        .scroll-container::-webkit-scrollbar { 
+            display: none; 
+        }
+
+        .hourly-item {
+            background: var(--white);
+            min-width: 70px;
+            padding: 15px 10px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        }
+
+        .forecast-list {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .forecast-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .forecast-row:last-child { 
+            border-bottom: none; 
+        }
+
+        .btn-area {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .dl-btn {
+            background: var(--accent-green);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(46, 125, 50, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: transform 0.2s;
+        }
+        
+        .dl-btn:active { 
+            transform: scale(0.98); 
+        }
+
+        #report-view {
+            position: fixed;
+            left: -9999px;
+            top: 0;
+            width: 800px;
+            background: white;
+            padding: 40px;
+            box-sizing: border-box;
+            font-family: 'Times New Roman', serif;
+            color: #000;
+        }
+
+        .rep-head {
+            border-bottom: 2px solid #000;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .rep-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .stat-block h3 {
+            font-family: sans-serif;
+            font-size: 14px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        .data-table td { 
+            padding: 6px 0; 
+            border-bottom: 1px dotted #ddd; 
+        }
+        
+        .data-table td:last-child { 
+            text-align: right; 
+            font-weight: bold; 
+            font-family: monospace; 
+            font-size: 14px; 
+        }
+
+        .chart-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            background: #fafafa;
+            height: 250px;
+            position: relative;
+        }
+        
+        canvas { 
+            display: block; 
+            width: 100%; 
+            height: 100%; 
+        }
+
+        .full-forecast {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 20px;
+            font-family: sans-serif;
+        }
+        
+        .full-forecast th { 
+            background: #eee; 
+            padding: 8px; 
+            border: 1px solid #999; 
+        }
+        
+        .full-forecast td { 
+            padding: 8px; 
+            border: 1px solid #ccc; 
+            text-align: center; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper">
+        <div class="search-container">
+            <input type="text" id="cityInput" placeholder="Search city..." value="San Francisco">
+            <button id="btnSearch">Search</button>
+        </div>
+
+        <div class="weather-card">
+            <h2 id="uiCity" style="margin: 0;">--</h2>
+            <div id="uiDate" style="font-size: 14px; opacity: 0.7; margin-bottom: 10px;">--</div>
+            <div id="uiIcon" style="font-size: 64px;">--</div>
+            <div class="temp-display" id="uiTemp">--°</div>
+            <div class="condition-text" id="uiCondition">--</div>
+            <div class="quick-stats">
+                <span>💧 <span id="uiHum">--%</span></span>
+                <span>💨 <span id="uiWind">-- km/h</span></span>
+            </div>
+        </div>
+
+        <div>
+            <div class="section-header">24-Hour Projection</div>
+            <div class="scroll-container" id="hourlyList"></div>
+        </div>
+
+        <div>
+            <div class="section-header">7-Day Forecast</div>
+            <div class="forecast-list" id="dailyList"></div>
+        </div>
+
+        <div class="btn-area">
+            <button class="dl-btn" id="btnDownload">
+                <span>📄</span> Download Scientific Report
+            </button>
+        </div>
+    </div>
+
+    <div id="report-view">
+        <div class="rep-head">
+            <div>
+                <h1 style="margin:0; font-size:28px; text-transform:uppercase;">Meteorological Report</h1>
+                <p style="margin:5px 0 0; font-style:italic; color:#444;">Scientific Analysis Data</p>
+            </div>
+            <div style="text-align:right; font-size:14px;">
+                <div id="rName">CITY</div>
+                <div id="rCoords">Lat: 00.00 | Lon: 00.00</div>
+                <div id="rTime">Generated: --</div>
+            </div>
+        </div>
+
+        <div class="rep-grid">
+            <div class="stat-block">
+                <h3>Atmospheric Conditions</h3>
+                <table class="data-table">
+                    <tr><td>Air Temp (2m)</td><td id="rTemp">--</td></tr>
+                    <tr><td>Dew Point</td><td id="rDew">--</td></tr>
+                    <tr><td>Apparent Temp</td><td id="rFeel">--</td></tr>
+                    <tr><td>Rel. Humidity</td><td id="rHum">--</td></tr>
+                    <tr><td>VPD</td><td id="rVpd">--</td></tr>
+                    <tr><td>Pressure</td><td id="rPress">--</td></tr>
+                    <tr><td>Wind (10m)</td><td id="rWind">--</td></tr>
+                </table>
+            </div>
+
+            <div class="stat-block">
+                <h3>Solar & Terrestrial</h3>
+                <table class="data-table">
+                    <tr><td>Shortwave Rad</td><td id="rRad">-- W/m²</td></tr>
+                    <tr><td>Direct Rad</td><td id="rDir">-- W/m²</td></tr>
+                    <tr><td>Diffuse Rad</td><td id="rDif">-- W/m²</td></tr>
+                    <tr><td>Soil Temp (0cm)</td><td id="rSoil">--</td></tr>
+                    <tr><td>UV Index</td><td id="rUv">--</td></tr>
+                    <tr><td>Precipitation</td><td id="rPrecip">-- mm</td></tr>
+                    <tr><td>Cloud Cover</td><td id="rCloud">--</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="stat-block">
+            <h3>24-Hour Trend Analysis</h3>
+            <div class="chart-box">
+                <canvas id="mainChart" width="750" height="250"></canvas>
+            </div>
+        </div>
+
+        <div class="stat-block" style="margin-top: 20px;">
+            <h3>Forecast Matrix</h3>
+            <table class="full-forecast">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Condition</th>
+                        <th>Min (°C)</th>
+                        <th>Max (°C)</th>
+                        <th>Precip (mm)</th>
+                        <th>Wind (km/h)</th>
+                        <th>UV</th>
+                    </tr>
+                </thead>
+                <tbody id="rTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const cityInput = document.getElementById('cityInput');
+        const btnSearch = document.getElementById('btnSearch');
+        const btnDownload = document.getElementById('btnDownload');
+
+        const codes = {
+            0: { t: "Clear sky", i: "☀️" },
+            1: { t: "Mainly clear", i: "🌤️" },
+            2: { t: "Partly cloudy", i: "⛅" },
+            3: { t: "Overcast", i: "☁️" },
+            45: { t: "Fog", i: "🌫️" },
+            48: { t: "Rime fog", i: "🌫️" },
+            51: { t: "Light drizzle", i: "🌦️" },
+            53: { t: "Mod. drizzle", i: "🌦️" },
+            55: { t: "Dense drizzle", i: "🌧️" },
+            61: { t: "Slight rain", i: "🌧️" },
+            63: { t: "Rain", i: "🌧️" },
+            65: { t: "Heavy rain", i: "⛈️" },
+            71: { t: "Slight snow", i: "🌨️" },
+            73: { t: "Mod. snow", i: "❄️" },
+            75: { t: "Heavy snow", i: "❄️" },
+            95: { t: "Thunderstorm", i: "⚡" },
+            96: { t: "T-storm hail", i: "⛈️" },
+            99: { t: "Heavy T-storm", i: "⛈️" }
+        };
+
+        const getDesc = (c) => codes[c] || { t: "Unknown", i: "❓" };
+
+        function renderChart(data) {
+            const canvas = document.getElementById('mainChart');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+            
+            const hours = data.time.slice(0, 24).map(t => new Date(t).getHours());
+            const temps = data.temperature_2m.slice(0, 24);
+            const hums = data.relative_humidity_2m.slice(0, 24);
+
+            const maxT = Math.max(...temps) + 2;
+            const minT = Math.min(...temps) - 2;
+            const range = maxT - minT;
+
+            const mapY = (val) => h - ((val - minT) / range) * (h - 40) - 20;
+            const mapX = (idx) => (idx / 23) * (w - 60) + 40;
+
+            ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 1;
+            for(let i=0; i<=5; i++) {
+                let y = (h / 5) * i;
+                ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(w, y); ctx.stroke();
+            }
+
+            ctx.fillStyle = 'rgba(2, 136, 209, 0.1)';
+            hums.forEach((v, i) => {
+                const bh = (v / 100) * (h - 20);
+                ctx.fillRect(mapX(i) - 5, h - bh, 10, bh);
+            });
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#e65100';
+            ctx.lineWidth = 3;
+            temps.forEach((v, i) => {
+                const x = mapX(i);
+                const y = mapY(v);
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+
+            ctx.font = "12px Arial";
+            temps.forEach((v, i) => {
+                if (i % 3 === 0) {
+                    const x = mapX(i);
+                    const y = mapY(v);
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 4, 0, Math.PI*2);
+                    ctx.fillStyle = '#fff'; ctx.fill(); ctx.stroke();
+                    
+                    ctx.fillStyle = '#000';
+                    ctx.fillText(`${Math.round(v)}°`, x - 10, y - 10);
+                    
+                    ctx.fillStyle = '#666';
+                    ctx.fillText(`${hours[i]}:00`, x - 15, h - 5);
+                }
+            });
+        }
+
+        async function init() {
+            const city = cityInput.value;
+            if(!city) return;
+
+            btnSearch.textContent = "...";
+
+            try {
+                const geoReq = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&language=en&format=json`);
+                const geoRes = await geoReq.json();
+                
+                if(!geoRes.results) throw new Error("City not found");
+                const loc = geoRes.results[0];
+
+                const p = new URLSearchParams({
+                    latitude: loc.latitude,
+                    longitude: loc.longitude,
+                    current: "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,surface_pressure,wind_speed_10m,shortwave_radiation,direct_radiation,diffuse_radiation,soil_temperature_0cm,vapor_pressure_deficit,dew_point_2m,cloud_cover",
+                    hourly: "temperature_2m,relative_humidity_2m,weather_code",
+                    daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,uv_index_max",
+                    timezone: "auto",
+                    forecast_days: 8
+                });
+
+                const wReq = await fetch(`https://api.open-meteo.com/v1/forecast?${p}`);
+                const data = await wReq.json();
+
+                renderApp(loc, data);
+                renderReport(loc, data);
+
+            } catch (err) {
+                alert("Error loading data");
+            } finally {
+                btnSearch.textContent = "Search";
+            }
+        }
+
+        function renderApp(loc, data) {
+            const cur = data.current;
+            const wInfo = getDesc(cur.weather_code);
+
+            document.getElementById('uiCity').textContent = loc.name;
+            document.getElementById('uiDate').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', day:'numeric', month:'short'});
+            document.getElementById('uiIcon').textContent = wInfo.i;
+            document.getElementById('uiTemp').textContent = `${Math.round(cur.temperature_2m)}°C`;
+            document.getElementById('uiCondition').textContent = wInfo.t;
+            document.getElementById('uiHum').textContent = `${cur.relative_humidity_2m}%`;
+            document.getElementById('uiWind').textContent = `${cur.wind_speed_10m} km/h`;
+
+            const hList = document.getElementById('hourlyList');
+            hList.innerHTML = '';
+            
+            const nowStr = new Date().toISOString().slice(0, 13);
+            let idx = data.hourly.time.findIndex(t => t.includes(nowStr));
+            if(idx === -1) idx = 0;
+
+            for(let i = idx; i < idx + 24; i++) {
+                if(!data.hourly.time[i]) break;
+                
+                const t = Math.round(data.hourly.temperature_2m[i]);
+                const c = data.hourly.weather_code[i];
+                const hr = new Date(data.hourly.time[i]).getHours();
+                
+                const el = document.createElement('div');
+                el.className = 'hourly-item';
+                el.innerHTML = `
+                    <div style="font-size:12px; color:#666">${hr}:00</div>
+                    <div style="font-size:24px">${getDesc(c).i}</div>
+                    <div style="font-weight:600">${t}°</div>
+                `;
+                hList.appendChild(el);
+            }
+
+            const dList = document.getElementById('dailyList');
+            dList.innerHTML = '';
+            
+            for(let i = 0; i < 7; i++) {
+                const day = new Date(data.daily.time[i]).toLocaleDateString('en-US', { weekday: 'long' });
+                const min = Math.round(data.daily.temperature_2m_min[i]);
+                const max = Math.round(data.daily.temperature_2m_max[i]);
+                const c = data.daily.weather_code[i];
+
+                const row = document.createElement('div');
+                row.className = 'forecast-row';
+                row.innerHTML = `
+                    <div style="width:100px; font-weight:500">${i===0 ? 'Today' : day}</div>
+                    <div style="font-size:20px">${getDesc(c).i}</div>
+                    <div style="font-weight:600; color:#546e7a">${max}° / ${min}°</div>
+                `;
+                dList.appendChild(row);
+            }
+        }
+
+        function renderReport(loc, data) {
+            const c = data.current;
+            
+            document.getElementById('rName').textContent = `${loc.name}, ${loc.country}`;
+            document.getElementById('rCoords').textContent = `${loc.latitude.toFixed(2)}, ${loc.longitude.toFixed(2)}`;
+            document.getElementById('rTime').textContent = new Date().toLocaleString();
+            
+            document.getElementById('rTemp').textContent = `${c.temperature_2m} °C`;
+            document.getElementById('rDew').textContent = `${c.dew_point_2m} °C`;
+            document.getElementById('rFeel').textContent = `${c.apparent_temperature} °C`;
+            document.getElementById('rHum').textContent = `${c.relative_humidity_2m} %`;
+            document.getElementById('rVpd').textContent = `${c.vapor_pressure_deficit} kPa`;
+            document.getElementById('rPress').textContent = `${c.surface_pressure} hPa`;
+            document.getElementById('rWind').textContent = `${c.wind_speed_10m} km/h`;
+
+            document.getElementById('rRad').textContent = `${c.shortwave_radiation}`;
+            document.getElementById('rDir').textContent = `${c.direct_radiation}`;
+            document.getElementById('rDif').textContent = `${c.diffuse_radiation}`;
+            document.getElementById('rSoil').textContent = `${c.soil_temperature_0cm} °C`;
+            document.getElementById('rUv').textContent = data.daily.uv_index_max[0] || '--';
+            document.getElementById('rPrecip').textContent = `${c.precipitation}`;
+            document.getElementById('rCloud').textContent = `${c.cloud_cover} %`;
+
+            renderChart(data.hourly);
+
+            const body = document.getElementById('rTableBody');
+            body.innerHTML = '';
+            for(let i=0; i<7; i++) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${data.daily.time[i]}</td>
+                    <td>${getDesc(data.daily.weather_code[i]).t}</td>
+                    <td>${data.daily.temperature_2m_min[i]}</td>
+                    <td>${data.daily.temperature_2m_max[i]}</td>
+                    <td>${data.daily.precipitation_sum[i]}</td>
+                    <td>${data.daily.wind_speed_10m_max[i]}</td>
+                    <td>${data.daily.uv_index_max[i]}</td>
+                `;
+                body.appendChild(tr);
+            }
+        }
+
+        btnDownload.onclick = () => {
+            const el = document.getElementById('report-view');
+            const txt = btnDownload.innerHTML;
+            btnDownload.innerHTML = "Processing...";
+
+            html2canvas(el, {
+                scale: 2,
+                windowWidth: 900,
+                windowHeight: el.scrollHeight + 50
+            }).then(c => {
+                const a = document.createElement('a');
+                a.download = `Report_${cityInput.value}.png`;
+                a.href = c.toDataURL();
+                a.click();
+                btnDownload.innerHTML = txt;
+            }).catch(() => {
+                alert("Failed to save image");
+                btnDownload.innerHTML = txt;
+            });
+        };
+
+        btnSearch.onclick = init;
+        cityInput.onkeypress = (e) => { if(e.key === 'Enter') init(); };
+
+        init();
+
+    </script>
+</body>
+</html>
